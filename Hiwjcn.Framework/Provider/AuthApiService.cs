@@ -47,9 +47,15 @@ namespace Hiwjcn.Bll.Auth
         public async Task<_<TokenModel>> GetAccessTokenAsync(string client_id, string client_secret, string code, string grant_type)
         {
             var res = new _<TokenModel>();
+
+            var func = $"{nameof(AuthApiServiceFromDB)}.{nameof(GetAccessTokenAsync)}";
+            var p = new { client_id = client_id, client_secret = client_secret, code = code, grant_type = grant_type }.ToJson();
+
             var data = await this._IAuthTokenService.CreateTokenAsync(client_id, client_secret, code);
             if (data.error)
             {
+                $"获取token异常|{data.msg}|{func}|{p}".AddBusinessInfoLog();
+
                 res.SetErrorMsg(data.msg);
                 return res;
             }
@@ -68,13 +74,18 @@ namespace Hiwjcn.Bll.Auth
         {
             var data = new _<LoginUserInfo>();
 
+            var func = $"{nameof(AuthApiServiceFromDB)}.{nameof(GetLoginUserInfoByTokenAsync)}";
+            var p = new { client_id = client_id, access_token = access_token }.ToJson();
+
             if (!ValidateHelper.IsAllPlumpString(access_token, client_id))
             {
+                $"验证token异常|参数为空|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg("参数为空");
                 return data;
             }
 
-            var cache_expire = TimeSpan.FromMinutes(5);
+            var cache_expire = TimeSpan.FromMinutes(10);
             var Actor = ActorsManager<CacheHitLogActor>.Instance.DefaultClient;
 
             var hit_status = CacheHitStatusEnum.Hit;
@@ -93,6 +104,8 @@ namespace Hiwjcn.Bll.Auth
 
             if (token == null)
             {
+                $"token不存在|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg("token不存在");
                 return data;
             }
@@ -112,6 +125,8 @@ namespace Hiwjcn.Bll.Auth
 
             if (loginuser == null)
             {
+                $"用户不存在|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg("用户不存在");
                 return data;
             }
@@ -125,25 +140,23 @@ namespace Hiwjcn.Bll.Auth
 
             return data;
         }
-
-        private List<string> ParseScopes(string scope)
-        {
-            var scopeslist = ConvertHelper.NotNullList(scope?.JsonToEntity<List<string>>());
-            scopeslist = scopeslist.Select(x => x?.Trim()).Where(x => ValidateHelper.IsPlumpString(x)).ToList();
-            return scopeslist;
-        }
-
-        public async Task<_<string>> GetAuthCodeByOneTimeCodeAsync(string client_id, string scope, string phone, string sms)
+        
+        public async Task<_<string>> GetAuthCodeByOneTimeCodeAsync(string client_id, List<string> scopes, string phone, string sms)
         {
             var data = new _<string>();
+
+            var func = $"{nameof(AuthApiServiceFromDB)}.{nameof(GetAuthCodeByOneTimeCodeAsync)}";
+            var p = new { client_id = client_id, scope = scopes, phone = phone, sms = sms }.ToJson();
 
             var loginuser = await this._IAuthLoginService.LoginByCode(phone, sms);
             if (loginuser.error)
             {
+                $"验证码登录失败|{loginuser.msg}|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg(loginuser.msg);
                 return data;
             }
-            var scopeslist = this.ParseScopes(scope);
+            var scopeslist = AuthHelper.ParseScopes(scopes);
             if (!ValidateHelper.IsPlumpList(scopeslist))
             {
                 scopeslist = (await this._AuthScopeRepository.GetListAsync(null)).Select(x => x.Name).ToList();
@@ -152,6 +165,8 @@ namespace Hiwjcn.Bll.Auth
             var code = await this._IAuthTokenService.CreateCodeAsync(client_id, scopeslist, loginuser.data.UserID);
             if (code.error)
             {
+                $"创建Code失败|{code.msg}|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg(code.msg);
                 return data;
             }
@@ -160,17 +175,22 @@ namespace Hiwjcn.Bll.Auth
             return data;
         }
 
-        public async Task<_<string>> GetAuthCodeByPasswordAsync(string client_id, string scope, string username, string password)
+        public async Task<_<string>> GetAuthCodeByPasswordAsync(string client_id, List<string> scopes, string username, string password)
         {
             var data = new _<string>();
+
+            var func = $"{nameof(AuthApiServiceFromDB)}.{nameof(GetAuthCodeByPasswordAsync)}";
+            var p = new { client_id = client_id, scope = scopes, username = username, password = password }.ToJson();
 
             var loginuser = await this._IAuthLoginService.LoginByPassword(username, password);
             if (loginuser.error)
             {
+                $"密码登录失败|{loginuser.msg}|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg(loginuser.msg);
                 return data;
             }
-            var scopeslist = this.ParseScopes(scope);
+            var scopeslist = AuthHelper.ParseScopes(scopes);
             if (!ValidateHelper.IsPlumpList(scopeslist))
             {
                 scopeslist = (await this._AuthScopeRepository.GetListAsync(null)).Select(x => x.Name).ToList();
@@ -179,6 +199,8 @@ namespace Hiwjcn.Bll.Auth
             var code = await this._IAuthTokenService.CreateCodeAsync(client_id, scopeslist, loginuser.data.UserID);
             if (code.error)
             {
+                $"创建Code失败|{code.msg}|{func}|{p}".AddBusinessInfoLog();
+
                 data.SetErrorMsg(code.msg);
                 return data;
             }
