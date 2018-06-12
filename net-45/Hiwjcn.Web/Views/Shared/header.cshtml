@@ -1,0 +1,24 @@
+﻿@{
+    Layout = null;
+    
+    string title = ConvertHelper.GetString(ViewData["title"]);
+    string description = ConvertHelper.GetString(ViewData["description"]);
+    string keywords = ConvertHelper.GetString(ViewData["keywords"]);
+}
+<!--title-->
+<title>@(title)</title>
+<!--关键词和描述-->
+<meta name="keywords" content="@(keywords)">
+<meta name="description" content="@(description)">
+<!--图标-->
+<link rel="shortcut icon" href="/static/image/logo/favicon.ico" type="image/x-icon">
+<!--网站信息-->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!--bing webmaster told me to add this-->
+<meta http-equiv="content-language" content="zh-cn" />
+<!--响应式布局-->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<!--用webkit渲染-->
+<meta name="renderer" content="webkit" />
+
+@Analysis()
